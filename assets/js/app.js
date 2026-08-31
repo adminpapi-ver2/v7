@@ -833,7 +833,7 @@ function updateTradeBalanceUI() {
 	const useAvailableBalance = Boolean(useBalanceCheckbox && useBalanceCheckbox.checked);
 	const availableBalance = Number(tradePageState.availableBalance || 0);
 
-	if (useAvailableBalance && amount >= 500 && amount > availableBalance) {
+	if (useAvailableBalance && amount >= 1000 && amount > availableBalance) {
 		noteEl.textContent = "Insufficient balance for this amount";
 		noteEl.style.color = "var(--danger)";
 		return;
@@ -852,7 +852,7 @@ function calculatePAT() {
 	const dailyEl = document.getElementById("daily");
 	const totalEl = document.getElementById("total");
 
-	if (!investment || investment < 500) {
+	if (!investment || investment < 1000) {
 		if (dailyEl) dailyEl.innerText = "₱0";
 		if (totalEl) totalEl.innerText = "₱0";
 		return;
@@ -1067,8 +1067,8 @@ function tradeNow() {
 		return;
 	}
 
-	if (!amount || amount < 500) {
-		showToast("Minimum trade amount is ₱500", "error");
+	if (!amount || amount < 1000) {
+		showToast("Minimum trade amount is ₱1000", "error");
 		return;
 	}
 
@@ -1979,7 +1979,7 @@ function loadTradeData() {
 
 			const planInfo = document.getElementById("tradePlanInfo");
 			if (planInfo) {
-				planInfo.textContent = (stats.plan_name || "Prime Autonomous Trading") + " • Min ₱" + Number(stats.plan_amount || 500).toLocaleString("en-US");
+				planInfo.textContent = (stats.plan_name || "Prime Autonomous Trading") + " • Min ₱" + Number(stats.plan_amount || 1000).toLocaleString("en-US");
 			}
 
 			const activePlansContainer = document.getElementById("activePlansContainer");
