@@ -1,0 +1,95 @@
+<section id="lockin" class="trade-shell lockin-shell">
+  <header class="header trade-header">
+    <div>
+      <div class="logo"><img src="assets/images/favicon.png" alt="PAT logo" class="brand-logo"><div class="brand-text">PAT <span>LOCK-IN</span></div></div>
+      <div class="subtitle">Secure your lock-in strategy</div>
+    </div>
+    <div class="profile"><span class="material-symbols-rounded">lock</span></div>
+  </header>
+
+  <div class="card trade-hero app-hero lockin-hero">
+    <div class="trade-hero-head">
+      <div>
+        <div class="label">Lockin Engine</div>
+        <div class="balance" style="font-size: clamp(22px, 4.8vw, 28px); margin: 8px 0 0;">Choose the plan that matches your pace</div>
+      </div>
+    </div>
+    <div class="trade-hero-foot">
+      <div class="subtitle" id="lockinPlanInfo">Secure your capital with fixed lock-in yields</div>
+      <div class="trade-hero-caption">Choose a lock-in rate that fits your strategy and grow with a predictable return window.</div>
+    </div>
+  </div>
+
+  <div class="card trade-form-card lockin-card">
+    <div class="section-heading">
+      <h3><span class="material-symbols-rounded"> lock </span> Select Engine</h3>
+      <span class="section-pill">Protected</span>
+    </div>
+
+    <label class="trade-input-label" for="lockinAmount">Lock-in amount</label>
+    <input id="lockinAmount" type="number" min="500" step="100" placeholder="Enter lock-in amount">
+    <div class="lockin-note">PHP 500 is the minimum.</div>
+
+    <div class="lockin-plan-list">
+      <button class="lockin-plan is-selected" type="button" data-plan="NEXUS" data-percent="20" data-days="10" data-badge="TOP PICK">
+        <div class="lockin-plan-main">
+          <span class="lockin-plan-name">NEXUS</span>
+          <span class="lockin-plan-rate">20% for 10 days</span>
+        </div>
+        <span class="lockin-plan-badge">TOP PICK</span>
+      </button>
+
+      <button class="lockin-plan" type="button" data-plan="ACCELERATOR" data-percent="30" data-days="15" data-badge="BALANCED">
+        <div class="lockin-plan-main">
+          <span class="lockin-plan-name">ACCELERATOR</span>
+          <span class="lockin-plan-rate">30% for 15 days</span>
+        </div>
+        <span class="lockin-plan-badge">BALANCED</span>
+      </button>
+
+      <button class="lockin-plan" type="button" data-plan="INFINITY" data-percent="40" data-days="20" data-badge="MAX YIELD">
+        <div class="lockin-plan-main">
+          <span class="lockin-plan-name">INFINITY</span>
+          <span class="lockin-plan-rate">40% for 20 days</span>
+        </div>
+        <span class="lockin-plan-badge">MAX YIELD</span>
+      </button>
+    </div>
+
+    <div class="lockin-summary">
+      <div class="lockin-summary-item">
+        <div class="label">Selected</div>
+        <strong id="lockinSelectedPlan">NEXUS</strong>
+      </div>
+      <div class="lockin-summary-item">
+        <div class="label">Total To Payout</div>
+        <strong id="lockinProjectedReturn">₱0.00</strong>
+      </div>
+      <div class="lockin-summary-item">
+        <div class="label">Window</div>
+        <strong id="lockinWindow">10 Days</strong>
+      </div>
+      <div class="lockin-summary-item">
+        <div class="label">Security</div>
+        <strong>Protected</strong>
+      </div>
+    </div>
+
+    <div class="trade-toggle-row lockin-toggle-row">
+      <div>
+        <div class="trade-toggle-title">Use available balance</div>
+        <div class="subtitle">Instant activation without checkout</div>
+      </div>
+      <label class="trade-toggle" for="useAvailableBalanceLockin">
+        <input id="useAvailableBalanceLockin" type="checkbox">
+        <span class="trade-toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="trade-note" id="lockinBalanceNote">Remaining balance: ₱0.00</div>
+
+    <button id="confirmLockinBtn" class="btn" type="button">Confirm Lock-In</button>
+  </div>
+
+  <div id="activePlansContainer"></div>
+</section>

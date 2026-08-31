@@ -1,0 +1,64 @@
+<section id="trade" class="trade-shell">
+   <header class="header trade-header">
+     <div>
+      <div class="logo"><img src="assets/images/favicon.png" alt="PAT logo" class="brand-logo"><div class="brand-text">PAT <span>TRADING</span></div>
+      </div>
+      <div class="subtitle"> Automated trade cycle </div>
+     </div>
+     <div class="profile"><span class="material-symbols-rounded">monitoring</span></div>
+    </header>
+
+   <div class="card trade-hero app-hero">
+    <div class="trade-hero-head">
+     <div>
+     <div class="label">Trade Engine</div>
+      <div class="balance" style="font-size: clamp(22px, 4.8vw, 28px); margin: 8px 0 0;">Activate your next smart trade</div>
+     </div>
+    </div>
+    <div class="trade-hero-foot">
+     <div class="subtitle" id="tradePlanInfo">Loading trade settings...</div>
+     <div class="trade-hero-caption">Choose available balance for instant activation or use checkout when you prefer a payment flow.</div>
+    </div>
+   </div>
+
+   <div class="card trade-form-card">
+    <div class="section-heading">
+     <h3><span class="material-symbols-rounded"> rocket_launch </span> Activate Trade</h3>
+     <span class="section-pill">Secure launch</span>
+    </div>
+
+    <label class="trade-input-label" for="investment">Trade amount</label>
+    <input id="investment" type="number" placeholder="Enter trade amount" oninput="calculatePAT()">
+
+    <div class="trade-metrics">
+     <div class="trade-metric">
+      <div class="label">Daily Income</div>
+      <strong id="daily">₱0.00</strong>
+      <span id="tradeYieldValue">6%</span>
+     </div>
+     <div class="trade-metric">
+      <div class="label">Projected Return</div>
+      <strong id="total">₱0.00</strong>
+      <span id="tradeCycleLabel">25 Day Return</span>
+     </div>
+    </div>
+
+    <div class="trade-toggle-row">
+     <div>
+      <div class="trade-toggle-title">Use available balance</div>
+      <div class="subtitle">Instant activation without checkout</div>
+     </div>
+     <label class="trade-toggle" for="useAvailableBalance">
+      <input id="useAvailableBalance" type="checkbox" onchange="calculatePAT()">
+      <span class="trade-toggle-slider"></span>
+     </label>
+    </div>
+
+    <div class="trade-note" id="tradeBalanceNote">Available balance: ₱0.00</div>
+
+    <button class="btn" onclick="tradeNow()">TRADE NOW</button>
+    <button id="startAI" class="btn" style="display:none;" onclick="startAIInvestment()">START AI TRADING</button>
+   </div>
+
+   <div id="activePlansContainer"></div>
+  </section>
