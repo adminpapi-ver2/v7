@@ -1,7 +1,7 @@
 {
   "servers": [
     {
-      "url": "https://green-starling-963283.hostingersite.com/api/",
+      "url": "https://green-starling-963283.hostingersite.com/rev7/api/",
       "priority": 1
     }
   ]
