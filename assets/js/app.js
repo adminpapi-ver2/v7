@@ -134,6 +134,11 @@ function normalizeApiRoute(url) {
 		"api/v1/user/trade": "v1/market/status",
 		"api/v1/user/report": "v1/activity/report",
 		"api/v1/lockins/create": "v1/lockins/create",
+		"market/summary": "v1/market/summary",
+		"market/investments": "v1/market/summary",
+		"lockins/summary": "v1/lockins/summary",
+		"v1/lockins/summary": "v1/lockins/summary",
+		"v1/market/summary": "v1/market/summary",
 		"v1/session/create": "v1/session/create",
 		"v1/session/end": "v1/session/end",
 		"v1/profile/create": "v1/profile/create",
@@ -338,27 +343,31 @@ async function requestJson(url, payload = null, method = "POST") {
 	for (let i = 0; i < candidates.length; i++) {
 		const base = candidates[i];
 		const normalizedUrl = normalizeApiRoute(url);
-		const fullUrl = new URL(normalizedUrl, base).toString();
+		const fullUrl = new URL(normalizedUrl, base);
+		if (method && String(method).toUpperCase() === 'GET') {
+			fullUrl.searchParams.set('_ts', String(Date.now()));
+		}
+		const finalUrl = fullUrl.toString();
 		let timeoutId = null;
 		try {
-const opts = Object.assign({}, baseOptions);
+const opts = Object.assign({}, baseOptions, { cache: 'no-store' });
 const controller = new AbortController();
 timeoutId = setTimeout(() => controller.abort(), 5000);
 opts.signal = controller.signal;
-const response = await fetch(fullUrl, opts);
+const response = await fetch(finalUrl, opts);
 clearTimeout(timeoutId);
- 
+				
 // A successful HTTP response proves the server is reachable; prefer it for subsequent requests.
 if (response.ok) {
 	lockInApiBase(base);
 }
- 
+				
 let data = {};
 try {
 	const text = await response.text();
 	if (text) data = JSON.parse(text);
 } catch (error) {
-	console.error("Invalid JSON response from " + fullUrl, error);
+	console.error("Invalid JSON response from " + finalUrl, error);
 	data = { success: false, message: "Request failed." };
 }
 // If unauthorized, handle session expired and return the server response immediately
@@ -1046,9 +1055,24 @@ function lockInNow() {
 			}
 
 			showToast(response.message || 'Lock-in created successfully');
-			setTimeout(() => {
-				openPage('wallet');
-			}, 500);
+			// If API indicates account activation, update local session and navigate to home (mirror trade behavior)
+			if (response.account_activated) {
+				try {
+					const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || {};
+					stored.status = 'active';
+					localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+				} catch (e) { /* ignore */ }
+				if (typeof window.__lockinSummaryRefresh === 'function') {
+					window.__lockinSummaryRefresh();
+				}
+				loadDashboardData().catch(() => {
+					setTimeout(() => openPage("home"), 200);
+				});
+			} else {
+				setTimeout(() => {
+					openPage("home");
+				}, 200);
+			}
 		})
 		.catch(() => {
 			showToast('Unable to create lock-in', 'error');
@@ -1091,9 +1115,21 @@ function tradeNow() {
 				tradePageState.availableBalance = Math.max(0, tradePageState.availableBalance - amount);
 				updateTradeBalanceUI();
 				showToast("Trade activated successfully");
-				setTimeout(() => {
-					openPage("trade");
-				}, 200);
+				// If API indicates account activation, update local session and refresh dashboard
+				if (data && data.account_activated) {
+					try {
+						const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || {};
+						stored.status = 'active';
+						localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+					} catch (e) { /* ignore */ }
+					loadDashboardData().catch(() => {
+						setTimeout(() => openPage("home"), 200);
+					});
+				} else {
+					setTimeout(() => {
+						openPage("home");
+					}, 200);
+				}
 			})
 			.catch(() => {
 				showToast("Unable to activate trade", "error");
@@ -1851,8 +1887,16 @@ function loadDashboardData(isProfilePage = false) {
 			if (portfolioGain) {
 				const gainValue = Number(stats.computed_gain || 0);
 				const gainPrefix = gainValue >= 0 ? "+" : "-";
-				portfolioGain.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">trending_up</span> ' + gainPrefix + formatCurrency(Math.abs(gainValue)) + " Today";
-			}
+				const isPositive = gainValue >= 0;
+				portfolioGain.classList.toggle("is-negative", !isPositive);
+				// Use full peso formatting (no K/M) and lime color for positive gains
+				portfolioGain.style.color = isPositive ? "#a3e635" : "rgba(255,255,255,0.78)";
+				let gainHtml = '<span class="material-symbols-rounded" aria-hidden="true">trending_up</span> ' + gainPrefix + formatCurrencyFull(Math.abs(gainValue)) + " Gain";
+				if (typeof stats.computed_gain_pct !== 'undefined' && stats.computed_gain_pct !== null) {
+					gainHtml += ' <small class="gain-pct">(' + String(Number(stats.computed_gain_pct || 0).toFixed(2)) + "% ROI)</small>";
+				}
+				portfolioGain.innerHTML = gainHtml;
+				}
 
 			const welcomeName = document.getElementById("welcomeName");
 			if (welcomeName) {
@@ -1876,12 +1920,12 @@ function loadDashboardData(isProfilePage = false) {
 
 			const profileStatus = document.getElementById("profileStatus");
 			if (profileStatus) {
-				const hasTrade = Boolean(stats && stats.has_trade);
-				const statusValue = hasTrade ? "active" : "inactive";
+				// Consider lockins and other activity flags in addition to trades so profile reflects actual activation.
+				const hasActive = Boolean(stats && (stats.has_trade || stats.has_lockin || Number(stats.active_lockins_count || 0) > 0 || stats.is_active));
 				let statusText = "INACTIVE MEMBER";
 				let statusColor = "var(--danger)";
 
-				if (statusValue === "active") {
+				if (hasActive) {
 					statusText = "ACTIVE MEMBER";
 					statusColor = "var(--primary)";
 				}
@@ -1924,10 +1968,11 @@ function loadDashboardData(isProfilePage = false) {
 				const homeStatusBadge = document.getElementById("homeStatusBadge");
 				const homeEngineStatusBadge = document.getElementById("homeEngineStatusBadge");
 				const homeModeText = document.getElementById("homeModeText");
-				const hasTrade = Boolean(stats && stats.has_trade);
-				const statusLabel = hasTrade ? "ACTIVE" : "INACTIVE";
-				const statusColor = hasTrade ? "var(--primary)" : "var(--danger)";
-				const statusBackground = hasTrade ? "rgba(0, 177, 79, 0.14)" : "rgba(229, 57, 53, 0.12)";
+				// Consider lockins and other activity flags in addition to trades so the badge reflects account activation.
+				const hasActive = Boolean(stats && (stats.has_trade || stats.has_lockin || Number(stats.active_lockins_count || 0) > 0 || stats.is_active));
+				const statusLabel = hasActive ? "ACTIVE" : "INACTIVE";
+				const statusColor = hasActive ? "var(--primary)" : "var(--danger)";
+				const statusBackground = hasActive ? "rgba(0, 177, 79, 0.14)" : "rgba(229, 57, 53, 0.12)";
 				if (homeStatusBadge) {
 					homeStatusBadge.textContent = statusLabel;
 					homeStatusBadge.style.color = statusColor;
@@ -1939,7 +1984,7 @@ function loadDashboardData(isProfilePage = false) {
 					homeEngineStatusBadge.style.backgroundColor = statusBackground;
 				}
 				if (homeModeText) {
-					homeModeText.textContent = hasTrade ? "Autonomous Mode Running" : "Autonomous Mode Inactive";
+					homeModeText.textContent = hasActive ? "Autonomous Mode Running" : "Autonomous Mode Inactive";
 				}
 			}
 		});
@@ -1982,12 +2027,114 @@ function loadTradeData() {
 				planInfo.textContent = (stats.plan_name || "Prime Autonomous Trading") + " • Min ₱" + Number(stats.plan_amount || 1000).toLocaleString("en-US");
 			}
 
+			// Populate hero stats: support both trade and lockin pages. Currency fields use formatCurrencyFull().
+			try {
+				const tradedEl = document.getElementById('tradedTotal');
+				const activeEl = document.getElementById('activeTrades');
+				const countEl = document.getElementById('tradeCount');
+				const dailyEl = document.getElementById('dailyIncome');
+
+				const lockinsTotalEl = document.getElementById('lockinsTotal');
+				const activeLockinsEl = document.getElementById('activeLockins');
+				const lockinCountEl = document.getElementById('lockinCount');
+				const projectedEl = document.getElementById('projectedAmount');
+
+				const tradedVal = Number(stats.traded || stats.total_traded || stats.trades_total || stats.total_trades || stats.lockins_total || 0);
+				const activeVal = Number(stats.active_trade || stats.active_trades_value || stats.active_trades_amount || stats.active_invested || stats.active_lockins_amount || 0);
+				const tradeCountVal = Number(stats.trade_count || stats.trades_count || stats.total_trades_count || stats.trades || stats.lockin_count || stats.lockins_count || 0);
+				const dailyIncomeVal = Number(stats.daily_income || stats.daily_profit || stats.trade_daily_income || stats.projected_daily || stats.projected_income || 0);
+
+				const tradedText = formatCurrencyFull(tradedVal);
+				const activeText = formatCurrencyFull(activeVal);
+				const dailyText = formatCurrencyFull(dailyIncomeVal);
+				const countText = String(tradeCountVal);
+
+				if (tradedEl) tradedEl.textContent = tradedText;
+				if (activeEl) activeEl.textContent = activeText;
+				if (countEl) countEl.textContent = countText;
+				if (dailyEl) dailyEl.textContent = dailyText;
+
+				if (lockinsTotalEl) lockinsTotalEl.textContent = tradedText;
+				if (activeLockinsEl) activeLockinsEl.textContent = activeText;
+				if (lockinCountEl) lockinCountEl.textContent = countText;
+				if (projectedEl) projectedEl.textContent = dailyText;
+			} catch (e) {
+				// ignore UI population errors
+			}
+
 			const activePlansContainer = document.getElementById("activePlansContainer");
 			if (activePlansContainer) {
 				const isLockinPage = Boolean(document.getElementById("lockin"));
 				const lockins = Array.isArray(stats.lockins) ? stats.lockins : [];
 				const investments = stats.investments || [];
 				const activeInvestments = investments.filter(item => String(item.status || "").toLowerCase() === "running");
+
+				// Fetch the authoritative summary from the active page's data source.
+				(function fetchHeroStatsFromApi() {
+					try {
+						const pageSummaryRoute = isLockinPage ? 'lockins/summary' : 'market/summary';
+						requestJson(pageSummaryRoute, null, 'GET')
+						            .then(resp => {
+						                if (!resp || !resp.success) return;
+						                try {
+						                    if (isLockinPage) {
+						                        const total = Number(resp.total_lockins || 0);
+						                        const active = Number(resp.active_lockins || 0);
+						                        const count = Number(resp.lockins_count || resp.active_lockins_count || 0);
+						                        const projected = Number(resp.projected_amount || resp.total_projected || 0);
+
+						                        const lockinsTotalEl = document.getElementById('lockinsTotal');
+						                        const activeLockinsEl = document.getElementById('activeLockins');
+						                        const lockinCountEl = document.getElementById('lockinCount');
+						                        const projectedEl = document.getElementById('projectedAmount');
+
+						                        if (lockinsTotalEl) lockinsTotalEl.textContent = formatCurrencyFull(total);
+						                        if (activeLockinsEl) activeLockinsEl.textContent = formatCurrencyFull(active);
+						                        if (lockinCountEl) lockinCountEl.textContent = String(count);
+						                        if (projectedEl) projectedEl.textContent = formatCurrencyFull(projected);
+						                        return;
+						                    }
+
+						            const total = Number(resp.total_invested || 0);
+						            const active = Number(resp.active_invested || 0);
+						            const count = Number(resp.investments_count || 0);
+						            const daily = Number(resp.total_daily_profit || 0);
+
+						            // Populate both trade and lockin hero IDs (compat)
+						            const format = formatCurrencyFull;
+						            const tradedEl = document.getElementById('tradedTotal');
+						            const activeEl = document.getElementById('activeTrades');
+						            const countEl = document.getElementById('tradeCount');
+						            const dailyEl = document.getElementById('dailyIncome');
+
+						            const lockinsTotalEl = document.getElementById('lockinsTotal');
+						            const activeLockinsEl = document.getElementById('activeLockins');
+						            const lockinCountEl = document.getElementById('lockinCount');
+						            const projectedEl = document.getElementById('projectedAmount');
+
+						            const totalText = format(total);
+						            const activeText = format(active);
+						            const dailyText = format(daily);
+						            const countText = String(count);
+
+						            if (tradedEl) tradedEl.textContent = totalText;
+						            if (activeEl) activeEl.textContent = activeText;
+						            if (countEl) countEl.textContent = countText;
+						            if (dailyEl) dailyEl.textContent = dailyText;
+
+						            if (lockinsTotalEl) lockinsTotalEl.textContent = totalText;
+						            if (activeLockinsEl) activeLockinsEl.textContent = activeText;
+						            if (lockinCountEl) lockinCountEl.textContent = countText;
+						            if (projectedEl) projectedEl.textContent = dailyText;
+						                } catch (e) {
+						                    // ignore
+						                }
+						            })
+						            .catch(() => {});
+					} catch (e) {
+						// ignore
+					}
+				})();
 
 				if (isLockinPage) {
 					if (!lockins.length) {

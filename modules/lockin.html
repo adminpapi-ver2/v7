@@ -7,16 +7,42 @@
     <div class="profile"><span class="material-symbols-rounded">lock</span></div>
   </header>
 
+  <style>
+  /* Lockin hero stats (scoped to this module) */
+  .lockin-hero .trade-hero-stats{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+  .lockin-hero .trade-stat{flex:1 1 110px;background:transparent;padding:8px 10px;border-radius:8px;text-align:left}
+  .lockin-hero .trade-stat .label{font-size:12px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.04em}
+  .lockin-hero .trade-stat .stat-value{font-size:18px;font-weight:700;margin-top:6px}
+  @media (max-width:420px){.lockin-hero .trade-stat{flex:1 1 48%}}
+  </style>
+
   <div class="card trade-hero app-hero lockin-hero">
     <div class="trade-hero-head">
       <div>
         <div class="label">Lockin Engine</div>
-        <div class="balance" style="font-size: clamp(22px, 4.8vw, 28px); margin: 8px 0 0;">Choose the plan that matches your pace</div>
+        <div class="balance" style="font-size: clamp(22px, 4.8vw, 28px); margin: 8px 0 0;">Secure with fixed lock-in yields</div>
       </div>
     </div>
     <div class="trade-hero-foot">
-      <div class="subtitle" id="lockinPlanInfo">Secure your capital with fixed lock-in yields</div>
-      <div class="trade-hero-caption">Choose a lock-in rate that fits your strategy and grow with a predictable return window.</div>
+      <div class="trade-hero-stats" role="list" aria-label="Lockin summary stats">
+       <div class="trade-stat" role="listitem">
+       <div class="label">Total</div>
+        <div class="stat-value" id="lockinsTotal">0</div>
+       </div>
+       <div class="trade-stat" role="listitem">
+       <div class="label">Active</div>
+        <div class="stat-value" id="activeLockins">0</div>
+       </div>
+       <div class="trade-stat" role="listitem">
+       <div class="label">Active Count</div>
+        <div class="stat-value" id="lockinCount">0</div>
+       </div>
+       <div class="trade-stat" role="listitem">
+        <div class="label">Projected</div>
+        <div class="stat-value" id="projectedAmount">₱0.00</div>
+       </div>
+      </div>
+
     </div>
   </div>
 
@@ -26,10 +52,8 @@
       <span class="section-pill">Protected</span>
     </div>
 
-    <label class="trade-input-label" for="lockinAmount">Lock-in amount</label>
+    <label class="trade-input-label" for="lockinAmount">Lock-in amount • Min ₱500</label>
     <input id="lockinAmount" type="number" min="500" step="100" placeholder="Enter lock-in amount">
-    <div class="lockin-note">Minimum lock-in: ₱500</div>
-
     <div class="lockin-plan-list">
       <button class="lockin-plan is-selected" type="button" data-plan="NEXUS" data-percent="20" data-days="10" data-badge="TOP PICK">
         <div class="lockin-plan-main">

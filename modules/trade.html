@@ -8,6 +8,17 @@
      <div class="profile"><span class="material-symbols-rounded">monitoring</span></div>
     </header>
 
+   <style>
+   /* Polished trade-hero stats (scoped to this module) */
+   .trade-hero .trade-hero-stats{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+   /* Left-align stats instead of center */
+   .trade-hero .trade-stat{flex:1 1 110px;background:transparent;padding:8px 10px;border-radius:8px;text-align:left}
+   .trade-hero .trade-stat .label{font-size:12px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.04em}
+   .trade-hero .trade-stat .stat-value{font-size:18px;font-weight:700;margin-top:6px}
+   .trade-hero .trade-stat .stat-meta{font-size:11px;color:rgba(255,255,255,0.65);margin-top:4px}
+   @media (max-width:420px){.trade-hero .trade-stat{flex:1 1 48%}}
+   </style>
+
    <div class="card trade-hero app-hero">
     <div class="trade-hero-head">
      <div>
@@ -17,8 +28,26 @@
     </div>
     <div class="trade-hero-foot">
      <div class="subtitle" id="tradePlanInfo" style="display:none;">Loading trade settings...</div>
-     <div class="subtitle" id="tradePlanInfo2">Prime Autonomous Trading • Min ₱1000</div>
-     <div class="trade-hero-caption">Choose available balance for instant activation or use checkout when you prefer a payment flow.</div>
+     
+     <div class="trade-hero-stats" role="list" aria-label="Trade summary stats">
+     <div class="trade-stat" role="listitem">
+      <div class="label">Total</div>
+      <div class="stat-value" id="tradedTotal">0</div>
+     </div>
+     <div class="trade-stat" role="listitem">
+      <div class="label">Active</div>
+      <div class="stat-value" id="activeTrades">0</div>
+     </div>
+     <div class="trade-stat" role="listitem">
+      <div class="label">Active Count</div>
+      <div class="stat-value" id="tradeCount">0</div>
+     </div>
+     <div class="trade-stat" role="listitem">
+      <div class="label">Daily Income</div>
+      <div class="stat-value" id="dailyIncome">₱0.00</div>
+     </div>
+     </div>
+
     </div>
    </div>
 
@@ -28,7 +57,7 @@
      <span class="section-pill">Secure launch</span>
     </div>
 
-    <label class="trade-input-label" for="investment">Trade amount</label>
+    <label class="trade-input-label" for="investment">Trade amount • Min ₱1000</label>
     <input id="investment" type="number" placeholder="Enter trade amount" oninput="calculatePAT()">
 
     <div class="trade-metrics">
