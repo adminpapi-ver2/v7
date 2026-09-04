@@ -97,52 +97,6 @@ window.addEventListener('orientationchange', () => applySeasonalTheme());
 
 applySeasonalTheme();
 
-// Debug overlay: open with ?pat_debug=1 to view recent PAT debug logs stored in sessionStorage
-function showPatDebugOverlay() {
-	try {
-		const raw = sessionStorage.getItem('pat_debug_logs');
-		const logs = raw ? JSON.parse(raw) : [];
-		const overlay = document.createElement('div');
-		overlay.style.position = 'fixed';
-		overlay.style.left = '8px';
-		overlay.style.right = '8px';
-		overlay.style.top = '8px';
-		overlay.style.bottom = '8px';
-		overlay.style.zIndex = 999999;
-		overlay.style.background = 'rgba(0,0,0,0.75)';
-		overlay.style.color = '#fff';
-		overlay.style.padding = '12px';
-		overlay.style.borderRadius = '8px';
-		overlay.style.overflow = 'auto';
-		overlay.id = 'patDebugOverlay';
-		
-		const header = document.createElement('div');
-		header.style.display = 'flex';
-		header.style.justifyContent = 'space-between';
-		header.style.alignItems = 'center';
-		header.style.marginBottom = '8px';
-		header.innerHTML = "<strong>PAT Debug Logs</strong>";
-		const closeBtn = document.createElement('button');
-		closeBtn.textContent = 'Close';
-		closeBtn.className = 'btn';
-		closeBtn.onclick = () => overlay.remove();
-		header.appendChild(closeBtn);
-		overlay.appendChild(header);
-		
-		const pre = document.createElement('pre');
-		pre.style.whiteSpace = 'pre-wrap';
-		pre.style.fontSize = '12px';
-		pre.style.lineHeight = '1.3';
-		pre.textContent = logs.length ? JSON.stringify(logs, null, 2) : 'No logs recorded';
-		overlay.appendChild(pre);
-		document.body.appendChild(overlay);
-	} catch (e) { console.error('Unable to render PAT debug overlay', e); }
-}
-
-if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pat_debug') === '1') {
-	setTimeout(showPatDebugOverlay, 800);
-}
-
 // URL that provides a JSON array of server base URLs (one per item)
 const SERVERS_JSON_URL = new URL('./servers.json', window.location.href).toString();
 // The list of API server bases (normalized, trailing slash included). Populated from servers.json only.
@@ -1097,30 +1051,6 @@ function isRequestSuccess(response) {
 	return false;
 }
 
-// Debug logging helper: records lightweight diagnostics to sessionStorage and console.
-function logDebug(context, details) {
-	try {
-		const entry = {
-			time: new Date().toISOString(),
-			context: String(context || ''),
-			userAgent: navigator.userAgent || '',
-			cookie: (typeof document !== 'undefined' && document.cookie) ? document.cookie : '',
-			pat_user: (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { return null; } })(),
-			details: details || null
-		};
-		console.debug('[PAT DEBUG]', entry);
-		try {
-			const key = 'pat_debug_logs';
-			const existing = sessionStorage.getItem(key);
-			const arr = existing ? JSON.parse(existing) : [];
-			arr.push(entry);
-			// keep last 20 entries
-			if (arr.length > 20) arr.splice(0, arr.length - 20);
-			sessionStorage.setItem(key, JSON.stringify(arr));
-		} catch (e) { /* ignore session storage failures */ }
-	} catch (e) { /* ignore logging failures */ }
-}
-
 function lockInNow() {
 	const user = getCurrentUser();
 	const amountInput = document.getElementById('lockinAmount');
@@ -2009,39 +1939,12 @@ function attachHomeAICardHandler() {
 }
 
 function loadDashboardData(isProfilePage = false) {
-	let user = getCurrentUser();
+	const user = getCurrentUser();
 
-	// If local session is missing, attempt a server-side check (helps embedded browsers like FB Messenger)
 	if (!user || !user.id) {
-		logDebug('loadDashboardData:fallback', { note: 'local pat_user missing; attempting server-side GET' });
-		return requestJson("dashboard.php", null, 'GET')
-			.then(data => {
-				logDebug('loadDashboardData:response', { response: data });
-				if (data && isRequestSuccess(data)) {
-					// restore local session if server returned user info
-					if (data.user) {
-						try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user)); } catch (e) { /* ignore */ }
-					}
-					// now re-read local user and continue
-					user = getCurrentUser();
-					if (!user || !user.id) {
-						// still no local user — proceed using server-provided data context
-						// fall through and handle using the returned data
-					}
-					// Use the response directly as dashboard payload to avoid duplicate requests
-					return data;
-				}
-				logDebug('loadDashboardData:unauthorized-or-failed', { message: data && data.message });
-				showToast(data && data.message ? data.message : "Please log in first", "error");
-				setTimeout(() => openPage("login"), 800);
-				return Promise.reject(new Error('no-user'));
-			})
-			.catch(err => {
-				logDebug('loadDashboardData:fetch-error', { error: String(err) });
-				showToast("Please log in", "error");
-				setTimeout(() => openPage("login"), 800);
-				return Promise.reject(err || new Error('no-user'));
-			});
+		showToast("Please log in first", "error");
+		setTimeout(() => openPage("login"), 800);
+		return Promise.reject(new Error('no-user'));
 	}
 
 	return requestJson("dashboard.php", {})
@@ -2176,29 +2079,10 @@ function loadDashboardData(isProfilePage = false) {
 }
 
 function loadTradeData() {
-	let user = getCurrentUser();
+	const user = getCurrentUser();
 
 	if (!user || !user.id) {
-		// Attempt server-side check to recover session in embedded browsers
-		logDebug('loadTradeData:fallback', { note: 'local pat_user missing; attempting server-side GET' });
-		return requestJson("dashboard.php", null, 'GET')
-			.then(data => {
-				logDebug('loadTradeData:response', { response: data });
-				if (data && isRequestSuccess(data)) {
-					if (data.user) {
-						try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user)); } catch (e) { /* ignore */ }
-					}
-					user = getCurrentUser();
-					// proceed using returned data (avoid duplicate request)
-					return data;
-				}
-				logDebug('loadTradeData:unauthorized-or-failed', { message: data && data.message });
-				return Promise.reject(new Error('no-user'));
-			})
-			.catch(err => {
-				logDebug('loadTradeData:fetch-error', { error: String(err) });
-				return Promise.reject(err || new Error('no-user'));
-			});
+		return Promise.reject(new Error('no-user'));
 	}
 
 	return requestJson("dashboard.php", {})
