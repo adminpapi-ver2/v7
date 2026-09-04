@@ -358,7 +358,9 @@ function sanitizeReferralNote(note, type) {
 	return out;
 }
 
-function handleSessionExpired(message = "Session expired. Please log in again.") {
+function handleSessionExpired(message = "Session expired. Please log in again.", options = {}) {
+	// options: { suppressToast: boolean }
+	const suppressToast = Boolean(options && options.suppressToast);
 	const normalized = String(message || "").toLowerCase();
 	const isAuthFailure = normalized.includes("please log in first")
 		|| normalized.includes("session expired")
@@ -390,7 +392,9 @@ function handleSessionExpired(message = "Session expired. Please log in again.")
 		}).catch(() => {});
 	} catch (e) {}
 
-	showToast(message || "Session expired. Please log in again.", "error");
+	if (!suppressToast) {
+		showToast(message || "Session expired. Please log in again.", "error");
+	}
 	setTimeout(() => {
 		openPage("login");
 	}, 700);
@@ -496,7 +500,7 @@ async function requestJson(url, payload = null, method = "POST") {
 
 	// If we reach here, all candidates failed. Redirect only if all servers said auth was required.
 	if (lastAuthMessage) {
-		handleSessionExpired(lastAuthMessage);
+		handleSessionExpired(lastAuthMessage, { suppressToast: true });
 	}
 
 	console.error("requestJson: all API servers failed for " + url);
