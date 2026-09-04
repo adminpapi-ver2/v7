@@ -28,14 +28,17 @@
     const isSafari = /AppleWebKit/i.test(ua) && !/Chrome|Chromium|Edg|Android/i.test(ua);
     const isOpera = /OPR|Opera/i.test(ua);
 
-    // Detect in-app browsers
-    const isFacebookApp = /FB|FBAN|FBAV/i.test(ua);
+    // Detect in-app browsers more precisely across Android and iOS.
+    // Facebook's app UA strings include marker tokens like FBAN/FBAV/FBIOS on both platforms,
+    // while Messenger uses the Messenger app name plus a webkit mobile UA.
+    const isFacebookApp = /(?:FBAN|FBAV|FBIOS|FB4A|FB_IAB|FBAAN|FBDV|FBMD)/i.test(ua);
+    const isMessengerApp = /Messenger/i.test(ua) && /(?:Android|iPhone|iPad|iPod|AppleWebKit)/i.test(ua);
     const isInstagramApp = /Instagram/i.test(ua);
     const isTwitterApp = /Twitter/i.test(ua);
     const isLinkedInApp = /LinkedInApp/i.test(ua);
     const isWhatsAppApp = /WhatsApp/i.test(ua);
     const isTikTokApp = /TikTok/i.test(ua);
-    const isInAppBrowser = isFacebookApp || isInstagramApp || isTwitterApp || isLinkedInApp || isWhatsAppApp || isTikTokApp;
+    const isInAppBrowser = isFacebookApp || isMessengerApp || isInstagramApp || isTwitterApp || isLinkedInApp || isWhatsAppApp || isTikTokApp;
 
     return {
       isIOS,
@@ -49,6 +52,7 @@
       isSafari,
       isOpera,
       isFacebookApp,
+      isMessengerApp,
       isInstagramApp,
       isTwitterApp,
       isLinkedInApp,
@@ -60,7 +64,8 @@
   }
 
   function getInAppBrowserName(device) {
-    if (device.isFacebookApp) return 'Facebook Messenger';
+    if (device.isMessengerApp) return 'Facebook Messenger';
+    if (device.isFacebookApp) return 'Facebook App';
     if (device.isInstagramApp) return 'Instagram';
     if (device.isTwitterApp) return 'Twitter';
     if (device.isLinkedInApp) return 'LinkedIn';
@@ -124,8 +129,10 @@
   function setAppState(isAllowed) {
     const appEl = document.getElementById('app');
     const navEl = document.getElementById('bottomNav');
+    const currentPage = window.__PAT_CURRENT_PAGE__ || 'home';
+    const isAuthPage = currentPage === 'login' || currentPage === 'register';
 
-    if (isAllowed) {
+    if (isAllowed && !isAuthPage) {
       // Mark the app as unlocked for the PWA gate and remove the gating class
       document.body.classList.remove('pwa-gate');
       document.body.classList.add('pwa-gate-unlocked');
@@ -134,10 +141,11 @@
       return;
     }
 
-    // Ensure the unlocked marker is removed and the gate is active
+    // Ensure the unlocked marker is removed and the gate is active.
+    // Auth pages must always hide the navigation bar even when the app is installed.
     document.body.classList.remove('pwa-gate-unlocked');
     document.body.classList.add('pwa-gate');
-    if (appEl) appEl.style.display = 'none';
+    if (appEl) appEl.style.display = isAuthPage ? '' : 'none';
     if (navEl) navEl.style.display = 'none';
   }
 

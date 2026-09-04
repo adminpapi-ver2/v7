@@ -495,18 +495,16 @@ continue;
 // PAGE LOADER
 // ===============================
 
-function openPage(page, element) {
-
+function setBottomNavVisibility(page, element) {
 	const bottomNav = document.getElementById("bottomNav");
+	if (!bottomNav) return;
 
-	if (page === "login" || page === "register") {
-
-		if (bottomNav) bottomNav.style.display = "none";
-
-	} else {
-
-		if (bottomNav) bottomNav.style.display = "flex";
-
+	const isAuthPage = page === "login" || page === "register";
+	const isPwaGateLocked = document.body.classList.contains('pwa-gate');
+	const shouldHideNav = isAuthPage || isPwaGateLocked;
+	bottomNav.style.display = shouldHideNav ? "none" : "flex";
+	bottomNav.setAttribute("aria-hidden", shouldHideNav ? "true" : "false");
+	if (!shouldHideNav) {
 		document.querySelectorAll(".nav").forEach(nav => {
 			nav.classList.remove("active");
 		});
@@ -517,8 +515,12 @@ function openPage(page, element) {
 		} else if (element) {
 			element.classList.add("active");
 		}
-
 	}
+}
+
+function openPage(page, element) {
+	window.__PAT_CURRENT_PAGE__ = page;
+	setBottomNavVisibility(page, element);
 
 	// Show a lightweight loading placeholder immediately and scroll to top
 	try {
