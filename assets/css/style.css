@@ -34,6 +34,46 @@
     --mobile-help-url: '';
 }
 
+body[data-season="halloween"] {
+    --bg: #f8f4ef;
+    --surface: #fffaf6;
+    --surface2: #f3ece5;
+    --primary: #ff8a3d;
+    --primary-strong: #f76707;
+    --accent: #a75cff;
+    --accent-soft: #fff1ea;
+    --warning: #ffb347;
+    --danger: #ff5d73;
+    --text: #2d1208;
+    --muted: #7a4a36;
+    --border: #f2d7c7;
+    --hero: #0b1216;
+    --hero-text: rgba(255,255,255,0.97);
+    --hero-muted: rgba(255,255,255,0.72);
+    --hero-accent: rgba(47,242,158,0.08);
+    --app-background: #ffffff;
+}
+
+body[data-season="christmas"] {
+    --bg: #f6f5f1;
+    --surface: #fffdf9;
+    --surface2: #f3efe7;
+    --primary: #c62828;
+    --primary-strong: #9d1d1d;
+    --accent: #1f8f5f;
+    --accent-soft: #edf9f2;
+    --warning: #e8b34a;
+    --danger: #d72638;
+    --text: #1d2a22;
+    --muted: #5b7267;
+    --border: #e5d7c7;
+    --hero: #12251d;
+    --hero-text: rgba(255,255,255,0.97);
+    --hero-muted: rgba(220,235,228,0.75);
+    --hero-accent: rgba(198,40,40,0.10);
+    --app-background: #ffffff;
+}
+
 
 
 /* GLOBAL */
@@ -316,14 +356,16 @@ body {
     background:
         linear-gradient(
             180deg,
-            #FFFFFF 0%,
-            #F5F5F5 100%
-        );
+            rgba(255, 255, 255, 0.45) 0%,
+            rgba(245, 245, 245, 0.55) 100%
+        ),
+        url("../images/bg3.jpg") center center / cover fixed no-repeat;
 
     color: var(--text);
     min-height: 100vh;
     overflow-x: hidden;
 }
+
 
 
 .app {
@@ -424,11 +466,12 @@ body {
     font-size:22px;
     font-weight:900;
     letter-spacing:-0.5px;
-    color: #2ff29e;
+    color: var(--primary);
     display: flex;
     align-items: center;
     gap: 4px;
     line-height: 1;
+    text-shadow: 0 0 12px rgba(198, 40, 40, 0.18);
 
 }
 
@@ -441,7 +484,7 @@ body {
 
 .logo span {
 
-    color:#000000;
+    color: var(--text);
 
 }
 
@@ -462,22 +505,23 @@ body {
 
 
 .profile {
- 
+  
     width:45px;
     height:45px;
- 
+  
     border-radius:50%;
- 
+  
     display:flex;
     align-items:center;
     justify-content:center;
- 
-    background: #000000;
- 
-    color:#FFFFFF;
- 
+  
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+  
+    color:#fff;
+  
     font-weight:800;
- 
+    box-shadow: 0 0 14px rgba(31, 143, 95, 0.25);
+  
 }
 
 
@@ -574,6 +618,9 @@ body {
 
 }
 
+.wallet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 
 
 .section-heading {

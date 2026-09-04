@@ -17,6 +17,86 @@ window.addEventListener("resize", syncAppScale);
 window.addEventListener("orientationchange", syncAppScale);
 syncAppScale();
 
+function applySeasonalTheme(overrideDate = null) {
+  const now = overrideDate instanceof Date ? overrideDate : new Date();
+
+  // helper: check inclusive range within same year
+  function inRange(date, startMonth, startDay, endMonth, endDay) {
+    const year = date.getFullYear();
+    const start = new Date(year, startMonth, startDay);
+    const end = new Date(year, endMonth, endDay);
+    return date >= start && date <= end;
+  }
+
+  // Ranges (months are 0-based)
+  // Halloween: Oct 25 (9,25) to Nov 30 (10,30)
+  // Christmas: Nov 24 (10,24) to Dec 31 (11,31)
+  const isChristmas = inRange(now, 10, 24, 11, 31);
+  const isHalloween = inRange(now, 9, 25, 10, 30);
+
+  // Christmas takes precedence when ranges overlap
+  let season = 'default';
+  if (isChristmas) season = 'christmas';
+  else if (isHalloween) season = 'halloween';
+
+  const backgroundBySeason = {
+    halloween: "url('assets/images/bg1.jpg')",
+    christmas: "url('assets/images/bg2.jpg')",
+    default: "url('assets/images/bg3.jpg')"
+  };
+
+  const selectedBackground = backgroundBySeason[season] || backgroundBySeason.default;
+
+  document.body.dataset.season = season;
+
+  const gradient = 'linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(245, 245, 245, 0.55) 100%)';
+  const image = selectedBackground;
+  const isMobileWidth = window.innerWidth <= APP_MAX_WIDTH;
+
+  if (isMobileWidth) {
+    document.body.style.background = `${gradient}, ${image} center center / cover fixed no-repeat`;
+  } else {
+    document.body.style.background = gradient;
+  }
+
+  return { season, background: selectedBackground };
+}
+
+// Debug helpers (date-based). Use in the console:
+// PATDebug.setDate(year, monthIndex, day)
+// PATDebug.setSeason('halloween'|'christmas'|'default')
+// PATDebug.reset(); PATDebug.current()
+window.__PAT_DEBUG__ = {
+  setDate(year, monthIndex, day) {
+    const d = new Date(year, monthIndex, day);
+    return applySeasonalTheme(d);
+  },
+  setSeason(seasonName) {
+    const s = String(seasonName || '').toLowerCase();
+    if (s === 'halloween') return applySeasonalTheme(new Date(new Date().getFullYear(), 9, 28)); // Oct 28
+    if (s === 'christmas') return applySeasonalTheme(new Date(new Date().getFullYear(), 11, 15)); // Dec 15
+    return applySeasonalTheme(new Date(new Date().getFullYear(), 0, 15)); // Jan 15
+  },
+  reset() {
+    return applySeasonalTheme();
+  },
+  current() {
+    return document.body.dataset.season || 'default';
+  }
+};
+
+window.PATDebug = window.__PAT_DEBUG__;
+window.setSeasonTheme = function (value) {
+  if (value instanceof Date) return window.__PAT_DEBUG__.setDate(value.getFullYear(), value.getMonth(), value.getDate());
+  return window.__PAT_DEBUG__.setSeason(value);
+};
+
+// Re-apply on resize/orientation so the image sizing updates when viewport changes
+window.addEventListener('resize', () => applySeasonalTheme());
+window.addEventListener('orientationchange', () => applySeasonalTheme());
+
+applySeasonalTheme();
+
 // URL that provides a JSON array of server base URLs (one per item)
 const SERVERS_JSON_URL = new URL('./servers.json', window.location.href).toString();
 // The list of API server bases (normalized, trailing slash included). Populated from servers.json only.
@@ -960,6 +1040,17 @@ function attachLockinHandlers() {
 	window.__lockinSummaryRefresh = updateLockinSummary;
 }
 
+function isRequestSuccess(response) {
+	if (!response || typeof response !== 'object') {
+		return false;
+	}
+	if (response.success === true) return true;
+	if (response.status === 'success') return true;
+	if (response.ok === true) return true;
+	if (response.data && typeof response.data === 'object' && response.data.success === true) return true;
+	return false;
+}
+
 function lockInNow() {
 	const user = getCurrentUser();
 	const amountInput = document.getElementById('lockinAmount');
@@ -1010,7 +1101,7 @@ function lockInNow() {
 			}
 		})
 			.then(data => {
-				if (!data || !data.success) {
+				if (!isRequestSuccess(data)) {
 					showToast(data && data.message ? data.message : 'Unable to start lock-in payment', 'error');
 					return;
 				}
@@ -1044,7 +1135,7 @@ function lockInNow() {
 		use_available_balance: true
 	})
 		.then(response => {
-			if (!response || !response.success) {
+			if (!isRequestSuccess(response)) {
 				showToast(response && response.message ? response.message : 'Unable to create lock-in', 'error');
 				return;
 			}
@@ -1055,8 +1146,7 @@ function lockInNow() {
 			}
 
 			showToast(response.message || 'Lock-in created successfully');
-			// If API indicates account activation, update local session and navigate to home (mirror trade behavior)
-			if (response.account_activated) {
+			if (response.account_activated || response.data && response.data.account_activated) {
 				try {
 					const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || {};
 					stored.status = 'active';
@@ -1068,11 +1158,10 @@ function lockInNow() {
 				loadDashboardData().catch(() => {
 					setTimeout(() => openPage("home"), 200);
 				});
-			} else {
-				setTimeout(() => {
-					openPage("home");
-				}, 200);
 			}
+			setTimeout(() => {
+				openPage("home");
+			}, 200);
 		})
 		.catch(() => {
 			showToast('Unable to create lock-in', 'error');
@@ -1108,15 +1197,15 @@ function tradeNow() {
 				use_available_balance: true
 			})
 			.then(data => {
-				if (!data.success) {
-					showToast(data.message || "Unable to activate trade", "error");
+				if (!isRequestSuccess(data)) {
+					showToast(data && data.message ? data.message : "Unable to activate trade", "error");
 					return;
 				}
 				tradePageState.availableBalance = Math.max(0, tradePageState.availableBalance - amount);
 				updateTradeBalanceUI();
 				showToast("Trade activated successfully");
 				// If API indicates account activation, update local session and refresh dashboard
-				if (data && data.account_activated) {
+				if (data && (data.account_activated || data.data && data.data.account_activated)) {
 					try {
 						const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || {};
 						stored.status = 'active';
@@ -1125,11 +1214,10 @@ function tradeNow() {
 					loadDashboardData().catch(() => {
 						setTimeout(() => openPage("home"), 200);
 					});
-				} else {
-					setTimeout(() => {
-						openPage("home");
-					}, 200);
 				}
+				setTimeout(() => {
+					openPage("home");
+				}, 200);
 			})
 			.catch(() => {
 				showToast("Unable to activate trade", "error");
@@ -2389,11 +2477,6 @@ function loadWalletData() {
 			}
 		
 			loadSavedWithdrawalInfo();
-
-			const tradeEl = document.getElementById("walletTradeValue");
-			if (tradeEl) {
-				tradeEl.textContent = formatCurrency(Number(wallet.invested_balance || 0));
-			}
 
 			const profitEl = document.getElementById("walletProfitValue");
 			if (profitEl) {

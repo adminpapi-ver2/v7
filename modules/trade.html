@@ -10,12 +10,12 @@
 
    <style>
    /* Polished trade-hero stats (scoped to this module) */
-   .trade-hero .trade-hero-stats{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+   .trade-hero .trade-hero-stats{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
    /* Left-align stats instead of center */
-   .trade-hero .trade-stat{flex:1 1 110px;background:transparent;padding:8px 10px;border-radius:8px;text-align:left}
-   .trade-hero .trade-stat .label{font-size:12px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.04em}
-   .trade-hero .trade-stat .stat-value{font-size:18px;font-weight:700;margin-top:6px}
-   .trade-hero .trade-stat .stat-meta{font-size:11px;color:rgba(255,255,255,0.65);margin-top:4px}
+   .trade-hero .trade-stat{flex:1 1 100px;background:transparent;padding:6px 8px;border-radius:8px;text-align:left}
+   .trade-hero .trade-stat .label{font-size:11px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.04em}
+   .trade-hero .trade-stat .stat-value{font-size:16px;font-weight:700;margin-top:4px}
+   .trade-hero .trade-stat .stat-meta{font-size:10px;color:rgba(255,255,255,0.65);margin-top:4px}
    @media (max-width:420px){.trade-hero .trade-stat{flex:1 1 48%}}
    </style>
 
@@ -23,7 +23,6 @@
     <div class="trade-hero-head">
      <div>
      <div class="label">Trade Engine</div>
-      <div class="balance" style="font-size: clamp(22px, 4.8vw, 28px); margin: 8px 0 0;">Activate your next smart trade</div>
      </div>
     </div>
     <div class="trade-hero-foot">
@@ -31,15 +30,15 @@
      
      <div class="trade-hero-stats" role="list" aria-label="Trade summary stats">
      <div class="trade-stat" role="listitem">
-      <div class="label">Total</div>
+      <div class="label">Total Traded</div>
       <div class="stat-value" id="tradedTotal">0</div>
      </div>
      <div class="trade-stat" role="listitem">
-      <div class="label">Active</div>
+      <div class="label">Active Value</div>
       <div class="stat-value" id="activeTrades">0</div>
      </div>
      <div class="trade-stat" role="listitem">
-      <div class="label">Active Count</div>
+      <div class="label">Active Trades</div>
       <div class="stat-value" id="tradeCount">0</div>
      </div>
      <div class="trade-stat" role="listitem">
