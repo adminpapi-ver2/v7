@@ -132,21 +132,22 @@
     const currentPage = window.__PAT_CURRENT_PAGE__ || 'login';
     const isAuthPage = currentPage === 'login' || currentPage === 'register';
 
-    if (isAllowed && !isAuthPage) {
-      // Mark the app as unlocked for the PWA gate and remove the gating class
+    if (isAllowed) {
+      // Mark the app as unlocked for the PWA gate and remove the gating class.
+      // The bottom nav should remain controlled by the active page, not by the install state.
       document.body.classList.remove('pwa-gate');
       document.body.classList.add('pwa-gate-unlocked');
       if (appEl) appEl.style.display = '';
-      if (navEl) navEl.style.display = 'flex';
+      if (navEl) navEl.style.display = isAuthPage ? 'none' : 'flex';
       return;
     }
 
-    // Ensure the unlocked marker is removed and the gate is active.
-    // Auth pages must always hide the navigation bar even when the app is installed.
+    // The install gate is only meant to block access to app content when the app is not installed.
+    // It should not override navigation visibility after a successful login.
     document.body.classList.remove('pwa-gate-unlocked');
     document.body.classList.add('pwa-gate');
     if (appEl) appEl.style.display = isAuthPage ? '' : 'none';
-    if (navEl) navEl.style.display = 'none';
+    if (navEl) navEl.style.display = isAuthPage ? 'none' : 'flex';
   }
 
   function ensureInstallScreen(screenType = 'install') {

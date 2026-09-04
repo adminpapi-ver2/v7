@@ -501,8 +501,7 @@ function setBottomNavVisibility(page, element) {
 	if (!bottomNav) return;
 
 	const isAuthPage = page === "login" || page === "register";
-	const isPwaGateLocked = document.body.classList.contains('pwa-gate');
-	const shouldHideNav = isAuthPage || isPwaGateLocked;
+	const shouldHideNav = isAuthPage;
 	bottomNav.style.display = shouldHideNav ? "none" : "flex";
 	bottomNav.setAttribute("aria-hidden", shouldHideNav ? "true" : "false");
 	if (!shouldHideNav) {
