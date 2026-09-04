@@ -418,6 +418,8 @@ async function requestJson(url, payload = null, method = "POST") {
 	}
 
 	const candidates = apiServers.slice();
+	let lastAuthMessage = "";
+	let lastData = { success: false, message: "Request failed." };
 
 	// Try each server in order until one returns a usable response. Network errors or 5xx errors will trigger retry to next server.
 	for (let i = 0; i < candidates.length; i++) {
@@ -430,64 +432,75 @@ async function requestJson(url, payload = null, method = "POST") {
 		const finalUrl = fullUrl.toString();
 		let timeoutId = null;
 		try {
-const opts = Object.assign({}, baseOptions, { cache: 'no-store' });
-const controller = new AbortController();
-timeoutId = setTimeout(() => controller.abort(), 5000);
-opts.signal = controller.signal;
-const response = await fetch(finalUrl, opts);
-clearTimeout(timeoutId);
-				
-// A successful HTTP response proves the server is reachable; prefer it for subsequent requests.
-if (response.ok) {
-	lockInApiBase(base);
-}
-				
-let data = {};
-try {
-	const text = await response.text();
-	if (text) data = JSON.parse(text);
-} catch (error) {
-	console.error("Invalid JSON response from " + finalUrl, error);
-	data = { success: false, message: "Request failed." };
-}
-// If unauthorized, handle session expired and return the server response immediately
-if (response.status === 401 || response.status === 403) {
-	handleSessionExpired(data.message || "Session expired. Please log in again.");
-	return data;
-}
-// Retry to next server if the current one is unavailable (server error or other network-side failure)
-if (response.status >= 500) {
-	console.warn('Server reported HTTP ' + response.status + ' for ' + fullUrl + ', trying next server if any.');
-	continue;
-}
-// If server returned client error (4xx other than auth), return that result and do not try other servers
-if (response.status >= 400 && response.status < 500) {
-	return data;
-}
-// If parsed JSON explicitly indicates success:false but it's a logical failure, also return it (application-level error)
-if (data && typeof data.success !== 'undefined' && data.success === false) {
-	const message = String(data.message || "");
-	if (message.toLowerCase().includes("please log in first")
-		|| message.toLowerCase().includes("session expired")
-		|| message.toLowerCase().includes("sign-in required")
-		|| message.toLowerCase().includes("admin sign-in required")) {
-		handleSessionExpired(message);
-	}
-	return data;
-}
-// At this point, treat as success/usable response
-return data;
+			const opts = Object.assign({}, baseOptions, { cache: 'no-store' });
+			const controller = new AbortController();
+			timeoutId = setTimeout(() => controller.abort(), 5000);
+			opts.signal = controller.signal;
+			const response = await fetch(finalUrl, opts);
+			clearTimeout(timeoutId);
+
+			// A successful HTTP response proves the server is reachable; prefer it for subsequent requests.
+			if (response.ok) {
+				lockInApiBase(base);
+			}
+
+			let data = {};
+			try {
+				const text = await response.text();
+				if (text) data = JSON.parse(text);
+			} catch (error) {
+				console.error("Invalid JSON response from " + finalUrl, error);
+				data = { success: false, message: "Request failed." };
+			}
+			lastData = data;
+
+			if (response.status === 401 || response.status === 403) {
+				const message = String(data.message || "Session expired. Please log in again.");
+				lastAuthMessage = lastAuthMessage || message;
+				console.warn('Auth check failed on ' + finalUrl + ', trying next server if any.');
+				continue;
+			}
+
+			// Retry to next server if the current one is unavailable (server error or other network-side failure)
+			if (response.status >= 500) {
+				console.warn('Server reported HTTP ' + response.status + ' for ' + fullUrl + ', trying next server if any.');
+				continue;
+			}
+			// If server returned client error (4xx other than auth), return that result and do not try other servers
+			if (response.status >= 400 && response.status < 500) {
+				return data;
+			}
+			// If parsed JSON explicitly indicates success:false but it's a logical failure, also return it (application-level error)
+			if (data && typeof data.success !== 'undefined' && data.success === false) {
+				const message = String(data.message || "");
+				const authLikeMessage = message.toLowerCase().includes("please log in first")
+					|| message.toLowerCase().includes("session expired")
+					|| message.toLowerCase().includes("sign-in required")
+					|| message.toLowerCase().includes("admin sign-in required");
+				if (authLikeMessage) {
+					lastAuthMessage = lastAuthMessage || message;
+					console.warn('Server reported an auth failure for ' + finalUrl + ', trying next server if any.');
+					continue;
+				}
+				return data;
+			}
+			// At this point, treat as success/usable response
+			return data;
 		} catch (err) {
-if (timeoutId) clearTimeout(timeoutId);
-// Network-level failure or CORS issue — try next candidate if available
-console.warn('Request to ' + fullUrl + ' failed, trying next server if any.', err);
-continue;
+			if (timeoutId) clearTimeout(timeoutId);
+			// Network-level failure or CORS issue — try next candidate if available
+			console.warn('Request to ' + fullUrl + ' failed, trying next server if any.', err);
+			continue;
 		}
 	}
 
-	// If we reach here, all candidates failed
+	// If we reach here, all candidates failed. Redirect only if all servers said auth was required.
+	if (lastAuthMessage) {
+		handleSessionExpired(lastAuthMessage);
+	}
+
 	console.error("requestJson: all API servers failed for " + url);
-	return { success: false, message: "Request failed." };
+	return lastData;
 }
 
 
