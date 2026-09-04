@@ -135,12 +135,12 @@
     const title = document.createElement('h2');
     title.textContent = 'Manual install instructions';
     const p = document.createElement('p');
-    p.innerHTML = 'Use your browser menu and tap "Add to Home screen" (Android/Chrome) or use the Share menu and tap "Add to Home Screen" (Safari on iOS). After installing, return to the app.';
+    p.innerHTML = 'On iPhone: open this page in Safari, tap the Share button, and choose "Add to Home Screen". On Android/Chrome: use the browser menu and tap "Add to Home screen". After installing, return to the app.';
     const ok = document.createElement('button');
     ok.textContent = 'Open instructions';
     Object.assign(ok.style, { padding: '10px 14px', borderRadius: '8px', border: 'none', background: '#1a73e8', color: '#fff', cursor: 'pointer' });
     ok.addEventListener('click', function () {
-      alert('Follow the platform instructions: use the browser menu > Add to Home screen (Android/Chrome) or Share > Add to Home Screen (Safari).');
+      alert('iPhone instructions: open the page in Safari, tap the Share button, then choose "Add to Home Screen". Android/Chrome: use the browser menu and tap "Add to Home screen".');
     });
     const close = document.createElement('button');
     close.textContent = 'Close';
