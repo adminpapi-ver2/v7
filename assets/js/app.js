@@ -1939,12 +1939,35 @@ function attachHomeAICardHandler() {
 }
 
 function loadDashboardData(isProfilePage = false) {
-	const user = getCurrentUser();
+	let user = getCurrentUser();
 
+	// If local session is missing, attempt a server-side check (helps embedded browsers like FB Messenger)
 	if (!user || !user.id) {
-		showToast("Please log in first", "error");
-		setTimeout(() => openPage("login"), 800);
-		return Promise.reject(new Error('no-user'));
+		return requestJson("dashboard.php", null, 'GET')
+			.then(data => {
+				if (data && isRequestSuccess(data)) {
+					// restore local session if server returned user info
+					if (data.user) {
+						try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user)); } catch (e) { /* ignore */ }
+					}
+					// now re-read local user and continue
+					user = getCurrentUser();
+					if (!user || !user.id) {
+						// still no local user — proceed using server-provided data context
+						// fall through and handle using the returned data
+					}
+					// Use the response directly as dashboard payload to avoid duplicate requests
+					return data;
+				}
+				showToast(data && data.message ? data.message : "Please log in first", "error");
+				setTimeout(() => openPage("login"), 800);
+				return Promise.reject(new Error('no-user'));
+			})
+			.catch(err => {
+				showToast("Please log in", "error");
+				setTimeout(() => openPage("login"), 800);
+				return Promise.reject(err || new Error('no-user'));
+			});
 	}
 
 	return requestJson("dashboard.php", {})
@@ -2079,10 +2102,23 @@ function loadDashboardData(isProfilePage = false) {
 }
 
 function loadTradeData() {
-	const user = getCurrentUser();
+	let user = getCurrentUser();
 
 	if (!user || !user.id) {
-		return Promise.reject(new Error('no-user'));
+		// Attempt server-side check to recover session in embedded browsers
+		return requestJson("dashboard.php", null, 'GET')
+			.then(data => {
+				if (data && isRequestSuccess(data)) {
+					if (data.user) {
+						try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user)); } catch (e) { /* ignore */ }
+					}
+					user = getCurrentUser();
+					// proceed using returned data (avoid duplicate request)
+					return data;
+				}
+				return Promise.reject(new Error('no-user'));
+			})
+			.catch(err => Promise.reject(err || new Error('no-user')));
 	}
 
 	return requestJson("dashboard.php", {})
