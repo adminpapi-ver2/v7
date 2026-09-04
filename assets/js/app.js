@@ -6,6 +6,7 @@
 const app = document.getElementById("app");
 const STORAGE_KEY = "pat_user";
 const APP_MAX_WIDTH = 430;
+window.__PAT_CURRENT_PAGE__ = 'login';
 
 function syncAppScale() {
 	const scale = Math.min(1, window.innerWidth / APP_MAX_WIDTH);

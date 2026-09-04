@@ -129,7 +129,7 @@
   function setAppState(isAllowed) {
     const appEl = document.getElementById('app');
     const navEl = document.getElementById('bottomNav');
-    const currentPage = window.__PAT_CURRENT_PAGE__ || 'home';
+    const currentPage = window.__PAT_CURRENT_PAGE__ || 'login';
     const isAuthPage = currentPage === 'login' || currentPage === 'register';
 
     if (isAllowed && !isAuthPage) {
