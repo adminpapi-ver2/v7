@@ -5,6 +5,7 @@
 
 const app = document.getElementById("app");
 const STORAGE_KEY = "pat_user";
+const AUTH_TOKEN_KEY = "pat_auth_token";
 const APP_MAX_WIDTH = 430;
 
 function syncAppScale() {
@@ -306,6 +307,28 @@ function saveCurrentUser(user) {
 	return normalizedUser;
 }
 
+function getAuthToken() {
+	try {
+		const token = localStorage.getItem(AUTH_TOKEN_KEY);
+		return token ? token.trim() : "";
+	} catch (error) {
+		return "";
+	}
+}
+
+function saveAuthToken(loginResponse) {
+	const payload = loginResponse && loginResponse.data && typeof loginResponse.data === "object"
+		? loginResponse.data
+		: {};
+	const token = loginResponse && (
+		loginResponse.token || loginResponse.access_token || loginResponse.accessToken ||
+		payload.token || payload.access_token || payload.accessToken
+	);
+	if (typeof token === "string" && token.trim()) {
+		localStorage.setItem(AUTH_TOKEN_KEY, token.trim());
+	}
+}
+
 function formatCurrency(value) {
 	const number = Number(value || 0);
 	if (number >= 1000000) {
@@ -398,6 +421,7 @@ function handleSessionExpired(message = "Session expired. Please log in again.")
 	window.__patSessionExpiredHandled = true;
 
 	try { localStorage.removeItem("pat_user"); } catch (e) {}
+	try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch (e) {}
 	try { localStorage.removeItem("pat_username"); } catch (e) {}
 	try { sessionStorage.clear(); } catch (e) {}
 
@@ -419,6 +443,7 @@ function handleSessionExpired(message = "Session expired. Please log in again.")
 }
 
 async function requestJson(url, payload = null, method = "POST") {
+	const authToken = getAuthToken();
 	const baseOptions = {
 		method,
 		credentials: "include",
@@ -426,6 +451,9 @@ async function requestJson(url, payload = null, method = "POST") {
 			"Content-Type": "application/json"
 		}
 	};
+	if (authToken) {
+		baseOptions.headers.Authorization = "Bearer " + authToken;
+	}
 
 	if (payload !== null) {
 		baseOptions.body = JSON.stringify(payload);
@@ -757,6 +785,7 @@ function login() {
 				saveCurrentUser(
 					data.user || data.profile || (data.data && (data.data.user || data.data.profile || data.data))
 				);
+				saveAuthToken(data);
 
 
 				showToast("Login successful");
@@ -1880,8 +1909,12 @@ function startPortfolioCounter(target) {
 
 function logoutUser() {
 	window.__patSessionExpiredHandled = false;
+	// Start the request before clearing the token so token-only WebViews can end
+	// their server session as well.
+	const logoutRequest = requestJson("logout.php", {});
 	localStorage.removeItem("pat_user");
-	requestJson("logout.php", {})
+	localStorage.removeItem(AUTH_TOKEN_KEY);
+	logoutRequest
 		.catch(() => {
 			// Ignore logout failures and proceed to the login screen.
 		});
